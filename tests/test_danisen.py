@@ -731,3 +731,51 @@ class TestDanisen(unittest.IsolatedAsyncioTestCase):
 
         winner_rank, loser_rank = await self.danisen.score_update(self.ctx, winner, loser)
         self.assertEqual(winner_rank, [9, 0], "High-rank player should rank up normally when special rules are disabled")
+
+    async def test_reset_ranks_resets_db_and_roles(self):
+        """Test that reset_ranks resets all players to Dan 1 and updates Discord roles."""
+        bot_member = MagicMock()
+        bot_member.top_role.position = 10
+        bot_member.guild_permissions.manage_roles = True
+
+        dan1_role = MagicMock()
+        dan1_role.name = "Dan 1"
+        dan1_role.position = 1
+
+        dan3_role = MagicMock()
+        dan3_role.name = "Dan 3"
+        dan3_role.position = 3
+
+        member1 = AsyncMock()
+        member1.id = 12345
+        member1.roles = [dan3_role]
+
+        member2 = AsyncMock()
+        member2.id = 67890
+        member2.roles = []
+
+        self.ctx.guild = MagicMock()
+        self.ctx.guild.members = [member1, member2]
+        self.ctx.guild.get_member = MagicMock(return_value=bot_member)
+        self.ctx.guild.roles = [dan1_role, dan3_role]
+
+        self.database_cur.execute.return_value = self.database_cur
+        self.database_cur.fetchall.side_effect = [
+            [{"discord_id": 12345, "character": "Hyde", "dan": 3, "points": 2}],  # member1 players
+            []  # member2 players (not registered)
+        ]
+
+        await self.danisen.reset_ranks(self.ctx)
+
+        # DB should be updated to reset all dans to 1
+        self.database_cur.execute.assert_any_call("UPDATE players SET dan = 1")
+        self.database_con.commit.assert_called_once()
+
+        # member1 should have Dan 3 removed and Dan 1 added
+        member1.remove_roles.assert_called_once_with(dan3_role)
+        member1.add_roles.assert_called_once_with(dan1_role)
+
+        # member2 has no registered players, so no roles added
+        member2.add_roles.assert_not_called()
+
+        self.ctx.respond.assert_called_with("Danisen rank for all players reset to 1")
