@@ -805,6 +805,35 @@ class Danisen(commands.Cog):
 
         await ctx.respond(f"Configuration key `{key}` updated to `{parsed_value}`", ephemeral=True)
 
+    @discord.commands.slash_command(description="Resets danisen rank for all users (admin)")
+    @discord.commands.default_permissions(manage_guild=True)
+    async def reset_ranks(self, ctx: discord.ApplicationContext):
+        self.logger.info("Resetting ranks to Dan 1 for all users")
+
+        bot_member = ctx.guild.get_member(self.bot.user.id)
+        dan_role = discord.utils.get(ctx.guild.roles, name="Dan 1")
+
+        for member in ctx.guild.members:
+            players = self.database_cur.execute(
+                "SELECT * FROM players WHERE discord_id = ?", (member.id,)
+                ).fetchall()
+            
+            self.logger.info(f"Replacing old dan roles for users with Dan 1")
+            dan_roles_to_remove = [
+                r for r in member.roles
+                if r.name.startswith("Dan ") and r.name != "Dan 1" and self.can_manage_role(bot_member, r)]
+
+            if dan_roles_to_remove:
+                await member.remove_roles(*dan_roles_to_remove)
+
+            if players and dan_role and self.can_manage_role(bot_member, dan_role):    
+                await member.add_roles(dan_role)
+
+        self.database_cur.execute(f"UPDATE players SET dan = 1")
+        self.database_con.commit()
+
+        await ctx.respond("Danisen rank for all players reset to 1")
+
     def get_player(self, player_name, character):
         res = self.database_cur.execute(
             "SELECT * FROM players WHERE player_name=? AND character=?", 
