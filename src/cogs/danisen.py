@@ -818,7 +818,7 @@ class Danisen(commands.Cog):
                 "SELECT * FROM players WHERE discord_id = ?", (member.id,)
                 ).fetchall()
             
-            self.logger.info(f"Replacing old dan roles for users with Dan 1")
+            self.logger.info("Replacing old dan roles for users with Dan 1")
             dan_roles_to_remove = [
                 r for r in member.roles
                 if r.name.startswith("Dan ") and r.name != "Dan 1" and self.can_manage_role(bot_member, r)]
@@ -829,7 +829,7 @@ class Danisen(commands.Cog):
             if players and dan_role and self.can_manage_role(bot_member, dan_role):    
                 await member.add_roles(dan_role)
 
-        self.database_cur.execute(f"UPDATE players SET dan = 1")
+        self.database_cur.execute("UPDATE players SET dan = 1")
         self.database_con.commit()
 
         await ctx.respond("Danisen rank for all players reset to 1")
