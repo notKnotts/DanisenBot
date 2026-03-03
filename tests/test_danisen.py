@@ -768,7 +768,7 @@ class TestDanisen(unittest.IsolatedAsyncioTestCase):
         await self.danisen.reset_ranks(self.ctx)
 
         # DB should be updated to reset all dans to 1
-        self.database_cur.execute.assert_any_call("UPDATE players SET dan = 1")
+        self.database_cur.execute.assert_any_call("UPDATE players SET dan = 1, points = 0")
         self.database_con.commit.assert_called_once()
 
         # member1 should have Dan 3 removed and Dan 1 added

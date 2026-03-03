@@ -829,7 +829,7 @@ class Danisen(commands.Cog):
             if players and dan_role and self.can_manage_role(bot_member, dan_role):    
                 await member.add_roles(dan_role)
 
-        self.database_cur.execute("UPDATE players SET dan = 1")
+        self.database_cur.execute("UPDATE players SET dan = 1, points = 0")
         self.database_con.commit()
 
         await ctx.respond("Danisen rank for all players reset to 1")
